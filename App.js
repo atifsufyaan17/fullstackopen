@@ -1,95 +1,62 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 
-const Filter = ({ filterName, handleFilterInput }) => {
-  return (
-    <div>
-      filter shown with <input value={filterName} onChange={handleFilterInput} />
-    </div>
-  )
-}
-
-const PersonForm = ({ handleSubmit, newName, handleNameInput, newNumber, handleNumberInput }) => {
-  return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        name: <input value={newName} onChange={handleNameInput} />
-      </div>
-      <div>
-        number: <input value={newNumber} onChange={handleNumberInput} />
-      </div>
-      <div>
-        <button type="submit">add</button>
-      </div>
-    </form>
-  )
-}
-
-const Persons = ({personsFiltered}) => {
-  return (
-    <ul>
-      {personsFiltered.map((person) => {
-        return <li key={person.id}>{person.name} {person.number}</li>
-      })}
-    </ul>
-  )
-}
-
 const App = () => {
-  const [persons, setPersons] = useState([])
-  const [newName, setNewName] = useState('')
-  const [newNumber, setNewNumber] = useState('')
-  const [filterName, setFilterName] = useState('')
-
+  const [search, setSearch] = useState("")
+  const [countries, setCountries] = useState([])
+  const [temp, setTemp] = useState(-9999)
+  const [wind, setWind] = useState(-9999)
+  const api_key = process.env.REACT_APP_API_KEY
   const hook = () => {
     axios
-      .get('http://localhost:3001/persons')
+      .get('https://restcountries.com/v3.1/all')
       .then((response) => {
-        setPersons(response.data)
+        setCountries(response.data)
       })
   }
-  useEffect(hook, [])
-
-  persons.forEach((person) => {
-    if (person.name === newName) {
-      alert(`${newName} is already added to the phonebook`)
-    }
+  useEffect(hook,[])
+  
+  const countriesToShow = countries.filter((country) => {
+    return country.name.common.toLowerCase().includes(search.toLowerCase())
   })
+  let display = ""
 
-  const handleNameInput = (event) => {
-    setNewName(event.target.value)
+  if(countriesToShow.length == 1){
+    display = countriesToShow.map((country) => {
+      const lang = Object.values(country.languages).map(lan => <li>{lan}</li>)  
+      let temp = -9999, wind = -9999
+      return (
+        <div>
+          <h2>{country.name.common}</h2>
+          <div>Capital {country.capital}</div>
+          <div>Population {country.population}</div>
+          <h3>Languages</h3>
+          <ul>
+            {lang}
+          </ul>
+          <img src={country.flags.png}/>
+          <h3>Weather in {country.capital}</h3>
+          <div>temperature {temp} F</div>
+          <div>wind {wind} mph</div>
+        </div>
+      )
+    })
   }
-  const handleNumberInput = (event) => {
-    setNewNumber(event.target.value)
+  else if(countriesToShow.length < 10){
+    display = countriesToShow.map((country) => {
+      return <li key={country.name.common}>{country.name.common} <button onClick={() => setSearch(country.name.common)}>show</button></li>
+    })
   }
-  const handleFilterInput = (event) => {
-    setFilterName(event.target.value)
+  else{    
+    display = 'Too many countries, specify another filter'
   }
-
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    const newPerson = {
-      name: newName,
-      number: newNumber,
-      id: persons.length + 1,
-    }
-    setPersons(persons.concat(newPerson))
-    setNewName('')
-    setNewNumber('')
-  }
-
-  const personsFiltered = persons.filter((person) => {
-    return filterName.toLowerCase() === person.name.slice(0, filterName.length).toLowerCase()
-  })
 
   return (
     <div>
-      <h1>Phonebook</h1>
-      <Filter filterName={filterName} handleFilterInput={handleFilterInput} />
-      <h2>Add a new</h2>
-      <PersonForm handleSubmit={handleSubmit} handleNameInput={handleNameInput} handleNumberInput={handleNumberInput} newName={newName} newNumber={newNumber} />
-      <h2>Numbers</h2>
-      <Persons personsFiltered={personsFiltered} />
+      <a>find countries <input value={search} onChange={(event) => {setSearch(event.target.value)}}/></a>
+      <div>
+        {display}
+      </div>
     </div>
   )
 }
